@@ -1,0 +1,1080 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update sys_domain="global" table="sys_cb_topic">
+    <sys_cb_topic action="INSERT_OR_UPDATE">
+        <applicability/>
+        <category display_value="ITSM Fulfiller">bfdd66da0b203300a1b16c2367673a1f</category>
+        <connect_queue/>
+        <description>ITSM conversation to resolve incidents</description>
+        <flexible_conversation_switching>false</flexible_conversation_switching>
+        <graph>{
+  "goals": {
+    "4574437f3b8b4cb79c89fe37b8a04f11": {
+      "id": "4574437f3b8b4cb79c89fe37b8a04f11",
+      "trigger": {
+        "type": "primary"
+      },
+      "name": "primary",
+      "applicability": "",
+      "description": "",
+      "nodes": {
+        "7f4ec9e641e049d1b4046e00c2777e91": {
+          "id": "7f4ec9e641e049d1b4046e00c2777e91",
+          "stepType": "Start",
+          "name": "Start",
+          "greetingResponse": {
+            "mode": "simple",
+            "value": ""
+          },
+          "applicability": {
+            "mode": "query",
+            "value": ""
+          }
+        },
+        "9fd948b16c3f4dccad66acb13236ac55": {
+          "id": "9fd948b16c3f4dccad66acb13236ac55",
+          "stepType": "TerminateGoal",
+          "name": "End",
+          "confirmationMessage": {
+            "value": "",
+            "mode": "simple"
+          },
+          "applicability": {
+            "mode": "query",
+            "value": ""
+          }
+        },
+        "96d8794d7f364e2388a77ff18f648b6d": {
+          "id": "96d8794d7f364e2388a77ff18f648b6d",
+          "name": "Get Tasks",
+          "script": "(function execute() {\n    var gr = new GlideRecordSecure('incident');\n    gr.addQuery('assigned_to', vaInputs.user);\n    gr.addQuery('state', '!=', vaVars.resolved_state)\n    gr.addActiveQuery();\n    gr.orderByDesc('sys_updated_on');\n\n    var start = parseInt(vaVars.index);\n    var end = start + parseInt(vaVars.limit);\n    gr.chooseWindow(start, end, true);\n    gr.query();\n\n    vaVars.count = gr.getRowCount();\n    var results = [];\n    while(gr.next()) {\n        results.push({ \n            'value': gr.getUniqueValue(), \n            'label': gs.getMessage('{0} [{1}]', [gr.getDisplayValue('short_description'),gr.getDisplayValue('number')])\n        });\n    }\n\n    vaVars.results = JSON.stringify(results);\n})()\n",
+          "stepType": "ScriptAction",
+          "applicability": {
+            "mode": "query",
+            "value": ""
+          }
+        },
+        "19ae3aab12f24abb8e8fc2ca51625470": {
+          "id": "19ae3aab12f24abb8e8fc2ca51625470",
+          "stepType": "Decision",
+          "name": "Decision",
+          "applicability": {
+            "mode": "query",
+            "value": ""
+          }
+        },
+        "c402e15f76ab4dd7a4f33a2380116ba3": {
+          "id": "c402e15f76ab4dd7a4f33a2380116ba3",
+          "stepType": "TextOutput",
+          "name": "No Open Incidents",
+          "value": {
+            "value": "I couldn't find any open incidents assigned to you.",
+            "mode": "simple"
+          },
+          "applicability": {
+            "mode": "query",
+            "value": ""
+          }
+        },
+        "9fba97aea9ec4beaa3c46901acc7799c": {
+          "id": "9fba97aea9ec4beaa3c46901acc7799c",
+          "stepType": "TextOutput",
+          "name": "One Incident",
+          "value": {
+            "value": "You have one incident assigned:",
+            "mode": "simple"
+          },
+          "applicability": {
+            "mode": "query",
+            "value": ""
+          }
+        },
+        "3b8e43557c044fd4838e5aba1be41c01": {
+          "id": "3b8e43557c044fd4838e5aba1be41c01",
+          "name": "Set IncidentId",
+          "script": "(function execute() {\n    var results = JSON.parse(vaVars.results);\n    vaVars.sys_id = results[0].value;\n})()\n",
+          "stepType": "ScriptAction",
+          "applicability": {
+            "mode": "query",
+            "value": ""
+          }
+        },
+        "3a1cb3b46fde45189414488943a01754": {
+          "stepType": "ReferenceChoicePrompt",
+          "name": "Incident",
+          "prompt": {
+            "value": "(function execute() {\n    return gs.getMessage('You have {0} incidents assigned. Which incident do you want to resolve?', vaVars.count);\n})()\n",
+            "mode": "script"
+          },
+          "confirmMessage": {
+            "value": "",
+            "mode": "simple"
+          },
+          "acknowledgeMsg": {
+            "value": "",
+            "mode": "simple"
+          },
+          "applicability": {
+            "mode": "query",
+            "value": ""
+          },
+          "optional": false,
+          "defaultValue": {
+            "value": "",
+            "mode": "simple"
+          },
+          "variableId": "fb0f329cd4ca4d039b66bb374c9cd9ee",
+          "id": "3a1cb3b46fde45189414488943a01754",
+          "mode": "external",
+          "script": "(function execute() {\n    var results = JSON.parse(vaVars.results);\n    var options = [];\n    for(var i = 0; i &lt; results.length; i++) {\n        options.push({ 'value': results[i].value, 'label': results[i].label });\n    }\n\n    if ((parseInt(vaVars.index) != 0)) {\n        options.push({ 'value': 'show_previous', 'label': gs.getMessage('Show previous') });\n    }\n\n    if (parseInt(vaVars.count) &gt; (parseInt(vaVars.index) +  parseInt(vaVars.limit))) {\n        options.push({ 'value': 'show_next', 'label': gs.getMessage('Show more') });\n    }\n\n    options.push({ 'value': 'cancel', 'label': gs.getMessage('I\\'m done') });\n    return options;\n})()\n",
+          "noRecordsResponseMsg": {
+            "value": "No records found.",
+            "mode": "simple"
+          },
+          "condition": {
+            "value": "(function execute() {\n    var results = JSON.parse(vaVars.results);\n    var options = [];\n    for(var i = 0; i &lt; results.length; i++) {\n        options.push({ 'value': results[i].value, 'label': results[i].label });\n    }\n\n    if ((parseInt(vaVars.index) != 0)) {\n        options.push({ 'value': 'show_previous', 'label': gs.getMessage('Show previous') });\n    }\n\n    if (parseInt(vaVars.count) &gt; (parseInt(vaVars.index) +  parseInt(vaVars.limit))) {\n        options.push({ 'value': 'show_next', 'label': gs.getMessage('Show more') });\n    }\n\n    options.push({ 'value': 'cancel', 'label': gs.getMessage('I\\'m done') });\n    return options;\n})()\n",
+            "mode": "external_script"
+          },
+          "withNluUserInput": true,
+          "skipIfFulfilled": true,
+          "entity": {
+            "id": "ticketnumber"
+          }
+        },
+        "9800371d45984b1e8e4a52babdcf0e27": {
+          "id": "9800371d45984b1e8e4a52babdcf0e27",
+          "stepType": "Decision",
+          "name": "Decision",
+          "applicability": {
+            "mode": "query",
+            "value": ""
+          }
+        },
+        "e9f7a9c8c64a4e77bf11848900836bfe": {
+          "id": "e9f7a9c8c64a4e77bf11848900836bfe",
+          "name": "Set Incident Id",
+          "script": "(function execute() {\n    vaVars.sys_id = vaInputs.incident.getValue();\n})()\n",
+          "stepType": "ScriptAction",
+          "applicability": {
+            "mode": "query",
+            "value": ""
+          }
+        },
+        "204fa30d983645dcbb2956e1cfc1ed7f": {
+          "id": "204fa30d983645dcbb2956e1cfc1ed7f",
+          "name": "Increment Index",
+          "script": "(function execute() {\n    var index = parseInt(vaVars.index);\n    var limit = parseInt(vaVars.limit);\n    var index = index + limit;\n    vaVars.index = index;\n})()\n",
+          "stepType": "ScriptAction",
+          "applicability": {
+            "mode": "query",
+            "value": ""
+          }
+        },
+        "c645cbba55174ebba5242fcb26bcacd0": {
+          "id": "c645cbba55174ebba5242fcb26bcacd0",
+          "name": "Decrement Index",
+          "script": "(function execute() {\n    var index = parseInt(vaVars.index);\n    var limit = parseInt(vaVars.limit);\n    var index = index - limit;\n    if (index &lt; 0) \n        index = 0;\n    vaVars.index = index;\n})()\n",
+          "stepType": "ScriptAction",
+          "applicability": {
+            "mode": "query",
+            "value": ""
+          }
+        },
+        "6d5ca38ec32a404c96c900765e0ebf56": {
+          "stepType": "ReferenceChoicePrompt",
+          "name": "Resolution",
+          "prompt": {
+            "value": "Alright. Let's start by selecting a resolution code:",
+            "mode": "simple"
+          },
+          "confirmMessage": {
+            "value": "",
+            "mode": "simple"
+          },
+          "acknowledgeMsg": {
+            "value": "",
+            "mode": "simple"
+          },
+          "applicability": {
+            "mode": "query",
+            "value": ""
+          },
+          "optional": false,
+          "defaultValue": {
+            "value": "",
+            "mode": "simple"
+          },
+          "variableId": "2896383d22444865a3d2e5b060047ffa",
+          "id": "6d5ca38ec32a404c96c900765e0ebf56",
+          "mode": "external",
+          "script": "(function execute() {\n    var choices = new GlideChoiceList();\n    var choiceList = choices.getChoiceList('incident', 'close_code');\n    \n    var options = [];\n    for (var i=0; i &lt; choiceList.getSize(); i++) {\n        var value = choiceList.getChoice(i).getValue();\n        if (value != '')\n            options.push({'value': value, 'label': choiceList.getChoice(i).getLabel()});\n    }\n    return options;     \n})()\n",
+          "noRecordsResponseMsg": {
+            "value": "OK, got it.",
+            "mode": "simple"
+          },
+          "condition": {
+            "mode": "external_script",
+            "value": "(function execute() {\n    var choices = new GlideChoiceList();\n    var choiceList = choices.getChoiceList('incident', 'close_code');\n    \n    var options = [];\n    for (var i=0; i &lt; choiceList.getSize(); i++) {\n        var value = choiceList.getChoice(i).getValue();\n        if (value != '')\n            options.push({'value': value, 'label': choiceList.getChoice(i).getLabel()});\n    }\n    return options;     \n})()\n"
+          },
+          "withNluUserInput": false,
+          "skipIfFulfilled": false,
+          "entity": {
+            "id": ""
+          }
+        },
+        "36c2670258fe41f288cd2528d37bf0e9": {
+          "id": "36c2670258fe41f288cd2528d37bf0e9",
+          "stepType": "Prompt",
+          "name": "Resolution Notes",
+          "prompt": {
+            "value": "Please provide some resolution notes.",
+            "mode": "simple"
+          },
+          "confirmMessage": {
+            "value": "",
+            "mode": "simple"
+          },
+          "acknowledgeMsg": {
+            "value": "",
+            "mode": "simple"
+          },
+          "applicability": {
+            "mode": "query",
+            "value": ""
+          },
+          "optional": false,
+          "defaultValue": {
+            "value": "",
+            "mode": "simple"
+          },
+          "variableId": "d74ce9fd5f4c47479be1b2f4cba639cb",
+          "withNluUserInput": false,
+          "skipIfFulfilled": false,
+          "entity": {
+            "id": ""
+          }
+        },
+        "aafb01552bcb46fbb9684ec3d63dade8": {
+          "id": "aafb01552bcb46fbb9684ec3d63dade8",
+          "stepType": "Decision",
+          "name": "Decision",
+          "applicability": {
+            "mode": "query",
+            "value": ""
+          }
+        },
+        "e2a71d659f0e43de84733b4e187ae26f": {
+          "stepType": "ChoicePrompt",
+          "name": "Update Comments",
+          "prompt": {
+            "value": "Got it! Would you like to add an additional comment or a work note?",
+            "mode": "simple"
+          },
+          "confirmMessage": {
+            "value": "",
+            "mode": "simple"
+          },
+          "acknowledgeMsg": {
+            "value": "",
+            "mode": "simple"
+          },
+          "applicability": {
+            "mode": "query",
+            "value": ""
+          },
+          "optional": false,
+          "defaultValue": {
+            "value": "",
+            "mode": "simple"
+          },
+          "variableId": "c6408c2852e244ec80063bcd1c14704b",
+          "id": "e2a71d659f0e43de84733b4e187ae26f",
+          "withNluUserInput": false,
+          "skipIfFulfilled": false,
+          "entity": {
+            "id": ""
+          }
+        },
+        "a1ebac90375a453db141f82337944af3": {
+          "id": "a1ebac90375a453db141f82337944af3",
+          "stepType": "Decision",
+          "name": "Decision",
+          "applicability": {
+            "mode": "query",
+            "value": ""
+          }
+        },
+        "8093b8f7c708444bad12667ed28a6738": {
+          "id": "8093b8f7c708444bad12667ed28a6738",
+          "stepType": "Prompt",
+          "name": "Comment",
+          "prompt": {
+            "value": "Please add your comment.",
+            "mode": "simple"
+          },
+          "confirmMessage": {
+            "value": "",
+            "mode": "simple"
+          },
+          "acknowledgeMsg": {
+            "value": "",
+            "mode": "simple"
+          },
+          "applicability": {
+            "value": "update_comments=comment^ORupdate_comments=both",
+            "mode": "query"
+          },
+          "optional": false,
+          "defaultValue": {
+            "value": "",
+            "mode": "simple"
+          },
+          "variableId": "e8bab40255484fae9414261fdac52136",
+          "withNluUserInput": false,
+          "skipIfFulfilled": false,
+          "entity": {
+            "id": ""
+          }
+        },
+        "226f0b717ebd4c96a0ab5c52e31139ba": {
+          "id": "226f0b717ebd4c96a0ab5c52e31139ba",
+          "stepType": "TextOutput",
+          "name": "Comment Is Empty",
+          "value": {
+            "value": "OK, no comment will be added.",
+            "mode": "simple"
+          },
+          "applicability": {
+            "mode": "script",
+            "value": "(function execute() {\n    var comment = vaInputs.comment.getValue();\n    return (!comment || comment.toString().trim() == '');\n})()\n"
+          }
+        },
+        "d0a73b3054cf4c358cd33008c29c093d": {
+          "id": "d0a73b3054cf4c358cd33008c29c093d",
+          "stepType": "Prompt",
+          "name": "Work Notes",
+          "prompt": {
+            "value": "Please add your work note.",
+            "mode": "simple"
+          },
+          "confirmMessage": {
+            "value": "",
+            "mode": "simple"
+          },
+          "acknowledgeMsg": {
+            "value": "",
+            "mode": "simple"
+          },
+          "applicability": {
+            "value": "update_comments=work_notes^ORupdate_comments=both",
+            "mode": "query"
+          },
+          "optional": false,
+          "defaultValue": {
+            "value": "",
+            "mode": "simple"
+          },
+          "variableId": "c272a3d1597f4171a9aafd4fc684798e",
+          "withNluUserInput": false,
+          "skipIfFulfilled": false,
+          "entity": {
+            "id": ""
+          }
+        },
+        "a2d425e0dee041149688e3f493c3caae": {
+          "id": "a2d425e0dee041149688e3f493c3caae",
+          "stepType": "TextOutput",
+          "name": "Work Notes is Empty",
+          "value": {
+            "value": "OK, no work note will be added.",
+            "mode": "simple"
+          },
+          "applicability": {
+            "mode": "script",
+            "value": "(function execute() {\n    var work_notes = vaInputs.work_notes.getValue();\n    return (!work_notes || work_notes.toString().trim() == '');\n})()\n"
+          }
+        },
+        "e055bddad80741e7a1b81b8ce892c45a": {
+          "id": "e055bddad80741e7a1b81b8ce892c45a",
+          "stepType": "Prompt",
+          "name": "Resolve Incident",
+          "prompt": {
+            "value": "Do you want to resolve this incident?",
+            "mode": "simple"
+          },
+          "confirmMessage": {
+            "value": "",
+            "mode": "simple"
+          },
+          "acknowledgeMsg": {
+            "value": "",
+            "mode": "simple"
+          },
+          "applicability": {
+            "mode": "query",
+            "value": ""
+          },
+          "optional": false,
+          "defaultValue": {
+            "value": "",
+            "mode": "simple"
+          },
+          "variableId": "3146387d1fa44ea19fcd49c66d976b81",
+          "withNluUserInput": false,
+          "skipIfFulfilled": false,
+          "entity": {
+            "id": ""
+          }
+        },
+        "defd92137e924777ada08803c9b55670": {
+          "id": "defd92137e924777ada08803c9b55670",
+          "stepType": "Decision",
+          "name": "Decision",
+          "applicability": {
+            "mode": "query",
+            "value": ""
+          }
+        },
+        "4fb935d594904fd3a04a12835f8831d3": {
+          "id": "4fb935d594904fd3a04a12835f8831d3",
+          "name": "Update Incident",
+          "script": "(function execute() {\n    var success = null;\n    var gr = new GlideRecordSecure('incident');\n    if (gr.get(vaVars.sys_id)) {\n        //set state to Resolved\n        gr.state = vaVars.resolved_state;\n        gr.close_code = vaInputs.resolution.getValue();\n        gr.close_notes = vaInputs.resolution_notes;\n        var operation = vaInputs.update_comments.getValue();\n        if (operation != 'cancel') {\n            if ((operation == 'comment' || operation == 'both') &amp;&amp; vaInputs.comment.getValue().trim() != ''){\n                gr.comments = vaInputs.comment;\n            }\n            if ((operation == 'work_notes' || operation == 'both') &amp;&amp; vaInputs.work_notes.getValue().trim() != ''){\n                gr.work_notes = vaInputs.work_notes;\n            }\n        }\n        success = gr.update();\n    }\n    vaVars.success = '' + (success != null);\n})()\n",
+          "stepType": "ScriptAction",
+          "applicability": {
+            "mode": "query",
+            "value": ""
+          }
+        },
+        "eb6d048d482d4061af601174b5e4e0cf": {
+          "id": "eb6d048d482d4061af601174b5e4e0cf",
+          "stepType": "Decision",
+          "name": "Decision",
+          "applicability": {
+            "mode": "query",
+            "value": ""
+          }
+        },
+        "36057b7087f34aa99f497ef3c9ecda51": {
+          "id": "36057b7087f34aa99f497ef3c9ecda51",
+          "stepType": "LinkOutput",
+          "name": "Incident Link",
+          "url": {
+            "value": "(function execute() {\n    return gs.getProperty('glide.servlet.uri') + '/incident.do?sys_id=' + vaVars.sys_id;\n})()\n",
+            "mode": "script"
+          },
+          "label": {
+            "value": "(function execute() {\n    var gr = new GlideRecord('incident');\n    if (gr.get(vaVars.sys_id)) {\n        return gr.getValue('short_description');\n    }\n    return '';\n})()\n",
+            "mode": "script"
+          },
+          "header": {
+            "value": "I'm sorry but I had a problem resolving your issue. Please use the link below to resolve it:",
+            "mode": "simple"
+          },
+          "applicability": {
+            "mode": "query",
+            "value": ""
+          },
+          "linkType": "single",
+          "introMsg": {
+            "mode": "simple",
+            "value": ""
+          },
+          "listOfLinks": ""
+        },
+        "2ca4d831f8ca432c9e499249bcb76587": {
+          "id": "2ca4d831f8ca432c9e499249bcb76587",
+          "stepType": "TextOutput",
+          "name": "Update Acknowledgement",
+          "value": {
+            "value": "I've successfully resolved this incident!",
+            "mode": "simple"
+          },
+          "applicability": {
+            "mode": "query",
+            "value": ""
+          }
+        },
+        "0a8dd0a22d4e4c30b577dbff6716a67b": {
+          "id": "0a8dd0a22d4e4c30b577dbff6716a67b",
+          "stepType": "RecordOutput",
+          "name": "Incident Card",
+          "variableId": "",
+          "mode": "script",
+          "script": "(function execute(table) {\n    var gr = new GlideRecord(table);\n    gr.get(vaVars.sys_id);\n    if(gr) {\n        return gr;\n    }\n})(table);\n",
+          "tableName": "incident",
+          "fields": [
+            "short_description",
+            "priority",
+            "state"
+          ],
+          "applicability": {
+            "mode": "query",
+            "value": ""
+          },
+          "condition": {
+            "mode": "glide_scripted_query",
+            "value": "(function execute(table) {\n    var gr = new GlideRecordSecure(table);\n    gr.get(vaVars.sys_id);\n    if(gr) {\n        return gr;\n    }\n})(table);\n"
+          }
+        }
+      },
+      "edges": [
+        {
+          "id": "41f411690f93489a8dd839fcd5ba3a64",
+          "edgeType": "Edge",
+          "source": "2ca4d831f8ca432c9e499249bcb76587",
+          "target": "9fd948b16c3f4dccad66acb13236ac55",
+          "sourcePort": "",
+          "targetPort": ""
+        },
+        {
+          "id": "0a3f191e2b57441cb7ba652ffdf33f89",
+          "edgeType": "Edge",
+          "source": "3b8e43557c044fd4838e5aba1be41c01",
+          "target": "0a8dd0a22d4e4c30b577dbff6716a67b",
+          "sourcePort": "",
+          "targetPort": ""
+        },
+        {
+          "id": "c3e60d68f56a456ba134a2f4ed54f672",
+          "edgeType": "Edge",
+          "source": "7f4ec9e641e049d1b4046e00c2777e91",
+          "target": "96d8794d7f364e2388a77ff18f648b6d",
+          "sourcePort": "",
+          "targetPort": ""
+        },
+        {
+          "id": "15327699da5b4794afbda727fecfe7a7",
+          "edgeType": "Edge",
+          "source": "96d8794d7f364e2388a77ff18f648b6d",
+          "target": "19ae3aab12f24abb8e8fc2ca51625470",
+          "sourcePort": "",
+          "targetPort": ""
+        },
+        {
+          "id": "77e4cb51eebd4e80afe6e14e9d58e18c",
+          "edgeType": "Branch",
+          "source": "19ae3aab12f24abb8e8fc2ca51625470",
+          "target": "c402e15f76ab4dd7a4f33a2380116ba3",
+          "sourcePort": "",
+          "targetPort": "",
+          "expression": {
+            "mode": "script",
+            "value": "(function execute() {\n     return parseInt(vaVars.count) == 0;\n})()\n"
+          },
+          "label": "No Incidents Found"
+        },
+        {
+          "id": "d4f7ce71b5ff48e6a0bccd21424535dd",
+          "edgeType": "Edge",
+          "source": "c402e15f76ab4dd7a4f33a2380116ba3",
+          "target": "9fd948b16c3f4dccad66acb13236ac55",
+          "sourcePort": "",
+          "targetPort": ""
+        },
+        {
+          "id": "7c93e46f504745ca8cadce88af0f0aab",
+          "edgeType": "Branch",
+          "source": "19ae3aab12f24abb8e8fc2ca51625470",
+          "target": "9fba97aea9ec4beaa3c46901acc7799c",
+          "sourcePort": "",
+          "targetPort": "",
+          "expression": {
+            "mode": "script",
+            "value": "(function execute() {\n    return parseInt(vaVars.count) == 1;\n})()\n"
+          },
+          "label": "One Incident Found"
+        },
+        {
+          "id": "eeaae59e54d84817826efe3547f9909f",
+          "edgeType": "Edge",
+          "source": "9fba97aea9ec4beaa3c46901acc7799c",
+          "target": "3b8e43557c044fd4838e5aba1be41c01",
+          "sourcePort": "",
+          "targetPort": ""
+        },
+        {
+          "id": "e95d900126e9438b8752aa1147f38a5a",
+          "edgeType": "Branch",
+          "source": "19ae3aab12f24abb8e8fc2ca51625470",
+          "target": "3a1cb3b46fde45189414488943a01754",
+          "sourcePort": "",
+          "targetPort": "",
+          "expression": {
+            "mode": "script",
+            "value": "(function execute() {\n    return parseInt(vaVars.count) &gt; 1;\n})()\n"
+          },
+          "label": "Multiple Incidents Found"
+        },
+        {
+          "id": "ef4d8747cff74f03b5857d5891b0a89a",
+          "edgeType": "Edge",
+          "source": "3a1cb3b46fde45189414488943a01754",
+          "target": "9800371d45984b1e8e4a52babdcf0e27",
+          "sourcePort": "",
+          "targetPort": ""
+        },
+        {
+          "id": "425567d1999a428fad91c85701632754",
+          "edgeType": "Branch",
+          "source": "9800371d45984b1e8e4a52babdcf0e27",
+          "target": "9fd948b16c3f4dccad66acb13236ac55",
+          "sourcePort": "",
+          "targetPort": "",
+          "expression": {
+            "mode": "script",
+            "value": "(function execute() {\n    return vaInputs.incident.getValue() == 'cancel';\n})()\n"
+          },
+          "label": "Done"
+        },
+        {
+          "id": "256cbecf026546d78ca7f8d79f25bfa6",
+          "edgeType": "Branch",
+          "source": "9800371d45984b1e8e4a52babdcf0e27",
+          "target": "e9f7a9c8c64a4e77bf11848900836bfe",
+          "sourcePort": "",
+          "targetPort": "",
+          "expression": {
+            "mode": "script",
+            "value": "(function execute() {\n    return (vaInputs.incident.getValue() != 'cancel' &amp;&amp; \n        vaInputs.incident.getValue() != 'show_next' &amp;&amp;\n        vaInputs.incident.getValue() != 'show_previous');\n})()\n"
+          },
+          "label": "Incident Selected"
+        },
+        {
+          "id": "8bfd434c80ed4982974b1600dafc52e9",
+          "edgeType": "Edge",
+          "source": "e9f7a9c8c64a4e77bf11848900836bfe",
+          "target": "0a8dd0a22d4e4c30b577dbff6716a67b",
+          "sourcePort": "",
+          "targetPort": ""
+        },
+        {
+          "id": "6223ee24444d4b4089b0502fb033b43f",
+          "edgeType": "Branch",
+          "source": "9800371d45984b1e8e4a52babdcf0e27",
+          "target": "204fa30d983645dcbb2956e1cfc1ed7f",
+          "sourcePort": "",
+          "targetPort": "",
+          "expression": {
+            "mode": "script",
+            "value": "(function execute() {\n    return vaInputs.incident.getValue() == 'show_next';\n})()\n"
+          },
+          "label": "Next"
+        },
+        {
+          "id": "c4b4e42f2e7d47849f64686a595b1880",
+          "edgeType": "Edge",
+          "source": "204fa30d983645dcbb2956e1cfc1ed7f",
+          "target": "96d8794d7f364e2388a77ff18f648b6d",
+          "sourcePort": "",
+          "targetPort": ""
+        },
+        {
+          "id": "00b0e114d62c4d97a8e80deb4ee7d10b",
+          "edgeType": "Branch",
+          "source": "9800371d45984b1e8e4a52babdcf0e27",
+          "target": "c645cbba55174ebba5242fcb26bcacd0",
+          "sourcePort": "",
+          "targetPort": "",
+          "expression": {
+            "mode": "script",
+            "value": "(function execute() {\n    return vaInputs.incident.getValue() == 'show_previous';\n})()\n"
+          },
+          "label": "Previous"
+        },
+        {
+          "id": "aa3e6d9a5e5e42df8b09191e021c482f",
+          "edgeType": "Edge",
+          "source": "c645cbba55174ebba5242fcb26bcacd0",
+          "target": "96d8794d7f364e2388a77ff18f648b6d",
+          "sourcePort": "",
+          "targetPort": ""
+        },
+        {
+          "id": "1ca32238350a4e739a340c78a6267575",
+          "edgeType": "Edge",
+          "source": "6d5ca38ec32a404c96c900765e0ebf56",
+          "target": "36c2670258fe41f288cd2528d37bf0e9",
+          "sourcePort": "",
+          "targetPort": ""
+        },
+        {
+          "id": "a4d0876949f0423dbe25312990d79f26",
+          "edgeType": "Edge",
+          "source": "36c2670258fe41f288cd2528d37bf0e9",
+          "target": "aafb01552bcb46fbb9684ec3d63dade8",
+          "sourcePort": "",
+          "targetPort": ""
+        },
+        {
+          "id": "1066bc4139154374b82f7cf6a0ef8a58",
+          "edgeType": "Branch",
+          "source": "aafb01552bcb46fbb9684ec3d63dade8",
+          "target": "36c2670258fe41f288cd2528d37bf0e9",
+          "sourcePort": "",
+          "targetPort": "",
+          "expression": {
+            "mode": "script",
+            "value": "(function execute() {\n    return (vaInputs.resolution_notes.getValue().trim() == '');\n})()\n"
+          },
+          "label": "No Resolution Notes"
+        },
+        {
+          "id": "d3136d5f4f814c9cae4717693366d56d",
+          "edgeType": "Branch",
+          "source": "aafb01552bcb46fbb9684ec3d63dade8",
+          "target": "e2a71d659f0e43de84733b4e187ae26f",
+          "sourcePort": "",
+          "targetPort": "",
+          "expression": {
+            "mode": "script",
+            "value": "(function execute() {\n    return (vaInputs.resolution_notes.getValue().trim() != '');\n})()\n"
+          },
+          "label": "Resolution Notes Not Empty"
+        },
+        {
+          "id": "8c67eeb6ed7849d699c12fda296ada5a",
+          "edgeType": "Edge",
+          "source": "e2a71d659f0e43de84733b4e187ae26f",
+          "target": "a1ebac90375a453db141f82337944af3",
+          "sourcePort": "",
+          "targetPort": ""
+        },
+        {
+          "id": "fe3b504f63c84c70893ea5af00deacf5",
+          "edgeType": "Branch",
+          "source": "a1ebac90375a453db141f82337944af3",
+          "target": "8093b8f7c708444bad12667ed28a6738",
+          "sourcePort": "",
+          "targetPort": "",
+          "expression": {
+            "value": "update_comments!=cancel",
+            "mode": "query"
+          },
+          "label": "Adding Comments"
+        },
+        {
+          "id": "ab7cea636b2049b2a4aa69f3b4760fcf",
+          "edgeType": "Edge",
+          "source": "8093b8f7c708444bad12667ed28a6738",
+          "target": "226f0b717ebd4c96a0ab5c52e31139ba",
+          "sourcePort": "",
+          "targetPort": ""
+        },
+        {
+          "id": "cdf4790dcfde4788acc26e5084403a42",
+          "edgeType": "Edge",
+          "source": "226f0b717ebd4c96a0ab5c52e31139ba",
+          "target": "d0a73b3054cf4c358cd33008c29c093d",
+          "sourcePort": "",
+          "targetPort": ""
+        },
+        {
+          "id": "761fb759fa734bae858c3bd12dd1ecc0",
+          "edgeType": "Edge",
+          "source": "d0a73b3054cf4c358cd33008c29c093d",
+          "target": "a2d425e0dee041149688e3f493c3caae",
+          "sourcePort": "",
+          "targetPort": ""
+        },
+        {
+          "id": "c1696e02b3454520aa42485191084242",
+          "edgeType": "Edge",
+          "source": "e055bddad80741e7a1b81b8ce892c45a",
+          "target": "defd92137e924777ada08803c9b55670",
+          "sourcePort": "",
+          "targetPort": ""
+        },
+        {
+          "id": "a2defca0487947b39df79a8782b8829f",
+          "edgeType": "Branch",
+          "source": "defd92137e924777ada08803c9b55670",
+          "target": "6d5ca38ec32a404c96c900765e0ebf56",
+          "sourcePort": "",
+          "targetPort": "",
+          "expression": {
+            "value": "resolve_incident=true",
+            "mode": "query"
+          },
+          "label": "Resolve This Incident"
+        },
+        {
+          "id": "f380c0eff7754c7d86c5813827ee9c77",
+          "edgeType": "Branch",
+          "source": "defd92137e924777ada08803c9b55670",
+          "target": "9fd948b16c3f4dccad66acb13236ac55",
+          "sourcePort": "",
+          "targetPort": "",
+          "expression": {
+            "value": "resolve_incident=",
+            "mode": "query"
+          },
+          "label": "Do Not Resolve Incident"
+        },
+        {
+          "id": "bc7000199f614b50a0247a58a08016da",
+          "edgeType": "Edge",
+          "source": "a2d425e0dee041149688e3f493c3caae",
+          "target": "4fb935d594904fd3a04a12835f8831d3",
+          "sourcePort": "",
+          "targetPort": ""
+        },
+        {
+          "id": "9a915a1375394b108f55216d019e9792",
+          "edgeType": "Edge",
+          "source": "4fb935d594904fd3a04a12835f8831d3",
+          "target": "eb6d048d482d4061af601174b5e4e0cf",
+          "sourcePort": "",
+          "targetPort": ""
+        },
+        {
+          "id": "8daf720376b047b68d8284d6ef64efb3",
+          "edgeType": "Branch",
+          "source": "eb6d048d482d4061af601174b5e4e0cf",
+          "target": "36057b7087f34aa99f497ef3c9ecda51",
+          "sourcePort": "",
+          "targetPort": "",
+          "expression": {
+            "mode": "script",
+            "value": "(function execute() {\n    return vaVars.success != 'true';\n})()\n"
+          },
+          "label": "Update Not Successful"
+        },
+        {
+          "id": "54a12ee6de554674860590ce97d3b6a4",
+          "edgeType": "Edge",
+          "source": "36057b7087f34aa99f497ef3c9ecda51",
+          "target": "9fd948b16c3f4dccad66acb13236ac55",
+          "sourcePort": "",
+          "targetPort": ""
+        },
+        {
+          "id": "e22cffdef49a44eb8abc937056f8df2e",
+          "edgeType": "Branch",
+          "source": "eb6d048d482d4061af601174b5e4e0cf",
+          "target": "2ca4d831f8ca432c9e499249bcb76587",
+          "sourcePort": "",
+          "targetPort": "",
+          "expression": {
+            "mode": "script",
+            "value": "(function execute() {\n    return vaVars.success == 'true';\n})()\n"
+          },
+          "label": "Update Succesful"
+        },
+        {
+          "id": "4427eef31a2c4820b6d666527c777c70",
+          "edgeType": "Branch",
+          "source": "a1ebac90375a453db141f82337944af3",
+          "target": "4fb935d594904fd3a04a12835f8831d3",
+          "sourcePort": "",
+          "targetPort": "",
+          "expression": {
+            "value": "update_comments=cancel",
+            "mode": "query"
+          },
+          "label": "Not Adding Comments"
+        },
+        {
+          "id": "94f928bce3f04c91b9173075f9fbcc55",
+          "edgeType": "Edge",
+          "source": "0a8dd0a22d4e4c30b577dbff6716a67b",
+          "target": "e055bddad80741e7a1b81b8ce892c45a",
+          "sourcePort": "",
+          "targetPort": ""
+        }
+      ]
+    }
+  },
+  "graph_api_version": "1.0.16",
+  "variables": {
+    "330cca2a18834bf58cbae7ef089d0dd0": {
+      "id": "330cca2a18834bf58cbae7ef089d0dd0",
+      "name": "LiveAgent_application",
+      "value": {
+        "mode": "simple",
+        "value": "itsm"
+      },
+      "varType": "script",
+      "label": "LiveAgent_application",
+      "category": "vaVars"
+    },
+    "99f6990806f94edd9f199e2b52f8cc5e": {
+      "id": "99f6990806f94edd9f199e2b52f8cc5e",
+      "value": {
+        "mode": "simple",
+        "value": "0"
+      },
+      "name": "count",
+      "label": "count",
+      "varType": "script",
+      "category": "vaVars"
+    },
+    "84547abb176240d0b2c26cb69d285d42": {
+      "id": "84547abb176240d0b2c26cb69d285d42",
+      "value": {
+        "mode": "simple",
+        "value": "5"
+      },
+      "name": "limit",
+      "label": "limit",
+      "varType": "script",
+      "category": "vaVars"
+    },
+    "e325a351193b4d60b6281cf89a050a07": {
+      "id": "e325a351193b4d60b6281cf89a050a07",
+      "value": {
+        "value": "",
+        "mode": "simple"
+      },
+      "name": "results",
+      "label": "results",
+      "varType": "script",
+      "category": "vaVars"
+    },
+    "a91311ed1a5f479385c1269f30cd9d48": {
+      "id": "a91311ed1a5f479385c1269f30cd9d48",
+      "value": {
+        "value": "",
+        "mode": "simple"
+      },
+      "name": "sys_id",
+      "label": "sys_id",
+      "varType": "script",
+      "category": "vaVars"
+    },
+    "fb0f329cd4ca4d039b66bb374c9cd9ee": {
+      "id": "fb0f329cd4ca4d039b66bb374c9cd9ee",
+      "name": "incident",
+      "label": "Incident",
+      "varType": "reference",
+      "table": "",
+      "category": "vaInputs"
+    },
+    "cfaca34a31ae43c7b06e6c2022a7095f": {
+      "id": "cfaca34a31ae43c7b06e6c2022a7095f",
+      "value": {
+        "mode": "simple",
+        "value": "0"
+      },
+      "name": "index",
+      "label": "index",
+      "varType": "script",
+      "category": "vaVars"
+    },
+    "2896383d22444865a3d2e5b060047ffa": {
+      "id": "2896383d22444865a3d2e5b060047ffa",
+      "name": "resolution",
+      "label": "Resolution",
+      "varType": "reference",
+      "table": "",
+      "category": "vaInputs"
+    },
+    "d74ce9fd5f4c47479be1b2f4cba639cb": {
+      "id": "d74ce9fd5f4c47479be1b2f4cba639cb",
+      "name": "resolution_notes",
+      "label": "Resolution Notes",
+      "varType": "string",
+      "category": "vaInputs"
+    },
+    "c6408c2852e244ec80063bcd1c14704b": {
+      "id": "c6408c2852e244ec80063bcd1c14704b",
+      "name": "update_comments",
+      "label": "Update Comments",
+      "varType": "choice",
+      "choices": [
+        {
+          "label": "A comment",
+          "value": "comment"
+        },
+        {
+          "label": "A work note",
+          "value": "work_notes"
+        },
+        {
+          "label": "Both a comment and a work note",
+          "value": "both"
+        },
+        {
+          "label": "Neither",
+          "value": "cancel"
+        }
+      ],
+      "category": "vaInputs"
+    },
+    "e8bab40255484fae9414261fdac52136": {
+      "id": "e8bab40255484fae9414261fdac52136",
+      "name": "comment",
+      "label": "Comment",
+      "varType": "string",
+      "category": "vaInputs"
+    },
+    "c272a3d1597f4171a9aafd4fc684798e": {
+      "id": "c272a3d1597f4171a9aafd4fc684798e",
+      "name": "work_notes",
+      "label": "Work Notes",
+      "varType": "string",
+      "category": "vaInputs"
+    },
+    "3146387d1fa44ea19fcd49c66d976b81": {
+      "id": "3146387d1fa44ea19fcd49c66d976b81",
+      "name": "resolve_incident",
+      "label": "Resolve Incident",
+      "varType": "boolean",
+      "category": "vaInputs"
+    },
+    "65bd22161371484bb21e5389eabaab92": {
+      "id": "65bd22161371484bb21e5389eabaab92",
+      "value": {
+        "mode": "simple",
+        "value": "false"
+      },
+      "name": "success",
+      "label": "success",
+      "varType": "script",
+      "category": "vaVars"
+    },
+    "138f783832484307b47453a7cef0bdae": {
+      "id": "138f783832484307b47453a7cef0bdae",
+      "value": {
+        "mode": "simple",
+        "value": "6"
+      },
+      "name": "resolved_state",
+      "label": "resolved_state",
+      "varType": "script",
+      "category": "vaVars"
+    },
+    "ce7b742c92534e4c83c53f85ab4635bf": {
+      "category": "vaInputs",
+      "id": "ce7b742c92534e4c83c53f85ab4635bf",
+      "label": "User",
+      "name": "user",
+      "table": "sys_user",
+      "varType": "reference"
+    }
+  }
+}</graph>
+        <key_phrases>resolve,close,update,incident,ticket</key_phrases>
+        <library>false</library>
+        <live_agent>false</live_agent>
+        <name>Resolve Incident duplicate</name>
+        <nlu_intent>ResolveIncident</nlu_intent>
+        <nlu_intent_label/>
+        <nlu_model>sn_itsm_nlu_ITSM_NLU_for_VA</nlu_model>
+        <nlu_model_label/>
+        <nlu_provider/>
+        <roles>itil</roles>
+        <sys_class_name>sys_cb_topic</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2020-10-08 11:44:09</sys_created_on>
+        <sys_domain>global</sys_domain>
+        <sys_id>e6b9cd6cdb3f10101e55dde748961999</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>Resolve Incident duplicate</sys_name>
+        <sys_package display_value="NeedIt" source="x_58872_needit">6ead8e780f603200cd674f8ce1050ed1</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="NeedIt">6ead8e780f603200cd674f8ce1050ed1</sys_scope>
+        <sys_update_name>sys_cb_topic_e6b9cd6cdb3f10101e55dde748961999</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2020-10-08 11:44:09</sys_updated_on>
+        <variables/>
+    </sys_cb_topic>
+    <sys_variable_value action="delete_multiple" query="document_key=e6b9cd6cdb3f10101e55dde748961999"/>
+</record_update>
